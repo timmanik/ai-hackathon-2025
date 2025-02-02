@@ -1,0 +1,50 @@
+[build-system]
+requires = ["poetry-core"]
+build-backend = "poetry.core.masonry.api"
+
+[tool.poetry]
+name = "streamlit-app"
+version = "0.1.0"
+description = "Streamlit app"
+authors = ["Marty Sullivan <marty@martysullivan.com>"]
+include = ["thisapp"]
+
+[tool.poetry.dependencies]
+python = "^3.12"
+
+aiohttp = "^3"
+poetry = "^1.8"
+pydantic = "^2"
+python-dotenv = "^1.0"
+s3fs = "2024.10.0"
+
+awslambdaric = { version = "^2", optional = true }
+aioboto3 = { version = "^12", optional = true }
+aiofiles = { version = "^24", optional = true }
+fastapi = { version = "^0.111", optional = true }
+openai = { version = "^1", optional = true }
+streamlit = { version = "^1", optional = true }
+
+[tool.poetry.extras]
+
+lambda = [
+    "awslambdaric",
+    "openai",
+]
+
+fastapi = [
+    "aioboto3",
+    "aiofiles",
+    "fastapi",
+    "openai",
+]
+
+streamlit = [
+    "streamlit",
+]
+
+[tool.poetry.group.dev.dependencies]
+cfn_flip = "*"
+cfn-lint = "*"
+ipykernel = "*"
+ipywidgets = "*"
