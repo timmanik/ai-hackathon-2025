@@ -16,7 +16,7 @@ services:
       dockerfile: Dockerfile
       target: streamlit
     ports:
-      - "8501"
+      - "8501:8501"
     environment:
       APPLICATION: 'cornell-ai-hackathon-2025'
       AWS_ENDPOINT_URL_DYNAMODB: 'http://dynamodb:8000/'
@@ -25,7 +25,7 @@ services:
       - '$HOME/.aws:/home/streamlit/.aws'
       - './streamlit-app:/code'
       - './thisapp:/code/thisapp'
-      - './.env:/code/.env'
+      - '${PWD}/.env:/code/.env'
 
   fastapi:
     container_name: hackathon-fastapi
@@ -36,15 +36,15 @@ services:
     depends_on:
       - dynamodb
     ports:
-      - "8000"
+      - "8000:8000"
     environment:
       APPLICATION: 'cornell-ai-hackathon-2025'
       AWS_PROFILE: 'cornell-ai-hackathon-2025'
     volumes:
-      - '$HOME/.aws:/root/.aws'
+      - '${HOME}/.aws:/root/.aws'
       - './fastapi-app:/code'
       - './thisapp:/code/thisapp'
-      - './.env:/code/.env'
+      - '${PWD}/.env:/code/.env'
 
   devcontainer:
     container_name: hackathon-devcontainer
@@ -57,6 +57,6 @@ services:
       AWS_PROFILE: 'cornell-ai-hackathon-2025'
     volumes:
       - '/var/run/docker.sock:/var/run/docker.sock'
-      - '$HOME/.aws:/root/.aws'
+      - '${HOME}/.aws:/root/.aws'
       - '.:/code'
       - '.:/workspace'
