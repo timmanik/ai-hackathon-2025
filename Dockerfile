@@ -7,6 +7,7 @@ RUN poetry config virtualenvs.create false
 
 RUN apt-get update \
     && apt-get install -y --no-install-recommends \
+        build-essential \
         curl \
     && rm -rf /var/lib/apt/lists/* \
     && apt-get clean
@@ -17,30 +18,6 @@ COPY ./pyproject.toml ./poetry.lock* ./
 
 RUN poetry install --only main --no-interaction --no-ansi --no-root -vv \
     && rm -rf /root/.cache/pypoetry
-
-FROM base AS lambda
-
-RUN apt update \
-    && apt install -y --no-install-recommends \
-        build-essential \
-        ffmpeg \
-    && poetry install -E lambda --only main --no-interaction --no-ansi --no-root -vv \
-    && rm -rf /root/.cache/pypoetry \
-    && apt-get autoremove -y \
-        build-essential \
-    && apt-get clean \
-    && rm -rf /var/lib/apt/lists/*
-
-COPY ./thisapp ./thisapp
-
-RUN poetry install -E lambda --only main --no-interaction --no-ansi -vv \
-    && rm -rf /root/.cache/pypoetry
-
-COPY ./lambda-app ./
-
-EXPOSE 8080
-ENTRYPOINT ["/code/entrypoint.sh"]
-CMD ["lambda_function.lambda_handler"]    
 
 FROM base AS fastapi
 
@@ -84,7 +61,6 @@ USER root
 
 RUN apt-get update \
     && apt-get install -y \
-        build-essential \
         curl \
         docker.io \
         git \

@@ -1,7 +1,7 @@
 services:
   
   dynamodb:
-    container_name: dynamodb
+    container_name: hackathon-dynamodb
     command: '-jar DynamoDBLocal.jar -sharedDb -dbPath ./data'
     image: public.ecr.aws/aws-dynamodb-local/aws-dynamodb-local:latest
     ports:
@@ -9,27 +9,8 @@ services:
     volumes:
       - './dynamodb-local/data:/home/dynamodblocal/data'
 
-  lambda:
-    container_name: lambda
-    build:
-      dockerfile: Dockerfile
-      target: lambda
-    environment:
-      APPLICATION: ''
-      AWS_ENDPOINT_URL_DYNAMODB: 'http://dynamodb:8000/'
-      AWS_LAMBDA_FUNCTION_MEMORY_SIZE: '10240'
-      AWS_LAMBDA_FUNCTION_TIMEOUT: '900'
-      AWS_PROFILE: ''
-    ports:
-      - "8080"
-    volumes:
-      - '$HOME/.aws:/root/.aws'
-      - './lambda-app:/code'
-      - './thisapp:/code/thisapp'
-      - './.env:/code/.env'
-
   streamlit:
-    container_name: streamlit
+    container_name: hackathon-streamlit
     command: ['--server.runOnSave', 'true']
     build:
       dockerfile: Dockerfile
@@ -37,8 +18,9 @@ services:
     ports:
       - "8501"
     environment:
-      APPLICATION: ''
-      AWS_PROFILE: ''
+      APPLICATION: 'cornell-ai-hackathon-2025'
+      AWS_ENDPOINT_URL_DYNAMODB: 'http://dynamodb:8000/'
+      AWS_PROFILE: 'cornell-ai-hackathon-2025'
     volumes:
       - '$HOME/.aws:/home/streamlit/.aws'
       - './streamlit-app:/code'
@@ -46,7 +28,7 @@ services:
       - './.env:/code/.env'
 
   fastapi:
-    container_name: fastapi
+    container_name: hackathon-fastapi
     command: ['--reload']
     build:
       dockerfile: Dockerfile
@@ -56,9 +38,8 @@ services:
     ports:
       - "8000"
     environment:
-      APPLICATION: ''
-      AWS_ENDPOINT_URL_DYNAMODB: 'http://dynamodb:8000/'
-      AWS_PROFILE: ''
+      APPLICATION: 'cornell-ai-hackathon-2025'
+      AWS_PROFILE: 'cornell-ai-hackathon-2025'
     volumes:
       - '$HOME/.aws:/root/.aws'
       - './fastapi-app:/code'
@@ -66,13 +47,14 @@ services:
       - './.env:/code/.env'
 
   devcontainer:
-    container_name: devcontainer
+    container_name: hackathon-devcontainer
     build:
       dockerfile: Dockerfile
       target: devcontainer
     environment:
-      APPLICATION: ''
-      AWS_PROFILE: ''
+      APPLICATION: 'cornell-ai-hackathon-2025'
+      AWS_ENDPOINT_URL_DYNAMODB: 'http://dynamodb:8000/'
+      AWS_PROFILE: 'cornell-ai-hackathon-2025'
     volumes:
       - '/var/run/docker.sock:/var/run/docker.sock'
       - '$HOME/.aws:/root/.aws'

@@ -1,5 +1,5 @@
 {
-	"name": "streamlit-template",
+	"name": "cornell-ai-hackathon-2025",
 	"dockerComposeFile": "../docker-compose.yml",
 	"service": "devcontainer",
 	"workspaceFolder": "/workspace",
