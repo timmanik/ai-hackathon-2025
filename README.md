@@ -19,7 +19,7 @@ Using this development environment has a few prerequisites:
 
 ## Starting the Dev Container
 
-1. Open VS Code and clone this repository to your local machine
+1. Open VS Code, clone this repository to your local machine and open it
 2. **Before doing anything** create a .env file in the root of the repo with any secrets provided to you by staff (e.g. OPENAI_API_KEY, OPENAI_BASE_URL, etc.)
 
 ```
@@ -43,15 +43,15 @@ Error response from daemon: failed to create task for container: failed to creat
 2. the streamlit-app directory (./streamlit-app/.env)
 3. the fastapi-app directory (./fastapi-app/.env)
 
-Once you delete these, try to open in Dev Container again.
+Once you delete these, try to "Reopen in Container" again.
 
 ## Available Technologies
 
 ### Jupyter Notebooks
 
-Under the `notebooks/` directory, you can create python notebooks. Simply create a new file named `<filename>.ipynb` and you can go from there!
+Under the `notebooks/` directory, you can create python notebooks. Simply create a new file named `<filename>.ipynb` and you can open it from the file navigator. This will allow you to edit and run code in the notebook right inside VS Code!
 
-⚠️ Be sure to choose the correct Kernel in the Jupyter Notebook, it should be something similar to `Python 3.12.7`
+⚠️ Be sure to choose the correct Kernel in the Jupyter Notebook, it should be something similar to `Python 3.12.8`
 
 ### Streamlit
 
@@ -69,7 +69,9 @@ Documentation: [https://fastapi.tiangolo.com/](https://fastapi.tiangolo.com/)
 
 The dev environment has a separate container running the FastAPI server in the background. It will be running on port 8000 on your local machine so you can open your browser and navigate to [http://localhost:8000/docs](http://localhost:8000/docs) to see the available endpoints and to test them out! You can also use something like `curl` from your local machine too to call the api endpoints via CLI, or obviously, you can call them with something like the requests module in python!
 
-Note: If you try to connect to FastAPI from within another container, like the Streamlit app, you need to use the container name as the hostname instead of `localhost`. e.g. `https://fastapi:8000/my-api-endpoint`
+The code for the FastAPI app is under `fastapi-app/app`. Any updates to the `fastapi-app/app/server.py` or adjacent files will be automatically detected and reload the FastAPI server, so you can easily make changes and test them live!
+
+⚠️ If you try to connect to FastAPI from within another container, like the Streamlit app, you need to use the container name as the hostname instead of `localhost`. e.g. `https://fastapi:8000/my-api-endpoint`
 
 ### Neo4j
 
@@ -82,17 +84,9 @@ The dev environment has a separate container running the Neo4j server in the bac
 Username: `neo4j`
 Password: `secretpassword`
 
-Note: If you try to connect to the neo4j server from within another container, like the streamlit app or the fastapi app, you need to use the container name as the hostname instead of `localhost`. e.g. `neo4j://neo4j:7687`
+⚠️ If you try to connect to the neo4j server from within another container, like the streamlit app or the fastapi app, you need to use the container name as the hostname instead of `localhost`. e.g. `neo4j://neo4j:7687`
 
-## Making code available to all components
-
-The `thisapp` directory is set up so that all running components will have access to the python code underneath as a module.
-
-Documentation: [https://docs.streamlit.io/](https://docs.streamlit.io/)
-
-For example, if you wanted to create a FastAPI backend and Streamlit frontend that both use a common Pydantic model named `MyModel`, you could define it under the `thisapp` directory in a python file named `thisapp/my_model.py` and then both apps can simply do `from thisapp.my_model import MyModel` and have access to the same code!
-
-## Available Python Modules
+### Available Python Modules
 
 Many common frameworks and libraries are already installed in the dev environment for your use. These include things like:
 
@@ -117,3 +111,11 @@ If you are missing a Python module you would like to use, it can be added as a d
 To add native libraries, the `Dockerfile` can be updated to install via the `apt` package manager and rebuilding the Dev Container. You could also update the Dockerfile to download, build and install something from source in a pinch.
 
 Feel free to ask hackathon staff for assistance.
+
+## Making code available to all components
+
+The `thisapp` directory is set up so that all running components will have access to the python code underneath as a module.
+
+Documentation: [https://docs.streamlit.io/](https://docs.streamlit.io/)
+
+For example, if you wanted to create a FastAPI backend and Streamlit frontend that both use a common Pydantic model named `MyModel`, you could define it under the `thisapp` directory in a python file named `thisapp/my_model.py` and then both apps can simply do `from thisapp.my_model import MyModel` and have access to the same code!
