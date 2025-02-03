@@ -93,7 +93,7 @@ Many common frameworks and libraries are already installed in the dev environmen
 * Pydantic
 * LangChain
 * Llama-Index 
-* ChromaDB (for vector db)
+* ChromaDB (for in-memory vector db)
 * Neo4j (for graph db, see above for how to connect)
 * PyTorch & Ray
 * Pandas & Geopandas
@@ -115,7 +115,5 @@ Feel free to ask hackathon staff for assistance.
 ## Making code available to all components
 
 The `thisapp` directory is set up so that all running components will have access to the python code underneath as a module.
-
-Documentation: [https://docs.streamlit.io/](https://docs.streamlit.io/)
 
 For example, if you wanted to create a FastAPI backend and Streamlit frontend that both use a common Pydantic model named `MyModel`, you could define it under the `thisapp` directory in a python file named `thisapp/my_model.py` and then both apps can simply do `from thisapp.my_model import MyModel` and have access to the same code!
