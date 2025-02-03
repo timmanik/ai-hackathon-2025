@@ -9,6 +9,18 @@ services:
     volumes:
       - './dynamodb-local/data:/home/dynamodblocal/data'
 
+  neo4j:
+    container_name: hackathon-neo4j
+    command: ['neo4j']
+    image: public.ecr.aws/docker/library/neo4j:5-bullseye
+    ports:
+      - "7474:7474"
+      - "7687:7687"
+    environment:
+      NEO4J_AUTH: 'neo4j/secretpassword'
+    volumes:
+      - './neo4j/data:/data'
+
   streamlit:
     container_name: hackathon-streamlit
     command: ['--server.runOnSave', 'true']

@@ -20,7 +20,15 @@ Using this development environment has a few prerequisites:
 ## Starting the Dev Container
 
 1. Open VS Code and clone this repository to your local machine
-2. **Before doing anything** create a .env file in the root of the repo with any secrets provided to you by staff (e.g. OPENAI_API_KEY, OPENAI_API_BASE, etc.)
+2. **Before doing anything** create a .env file in the root of the repo with any secrets provided to you by staff (e.g. OPENAI_API_KEY, OPENAI_BASE_URL, etc.)
+
+```
+# .env file
+
+OPENAI_API_KEY=https://api.ai.it.cornell.edu
+OPENAI_BASE_URL=sk-abcdefg12-3
+```
+
 3. In the bottom left corner of VS Code, click the green button and select "Reopen in Container" from the menu
 4. Wait for some time while the Dev Container environment is built on your machine
 5. Once the process is complete, you should see a file tree and open a terminal within the Dev Container workspace!
@@ -57,27 +65,55 @@ The code for the Streamlit app is under `streamlit-app/app`. Any updates to the 
 
 FastAPI is a powerful asynchronous API building library. You can build a custom API for your application with this!
 
+Documentation: [https://fastapi.tiangolo.com/](https://fastapi.tiangolo.com/)
+
 The dev environment has a separate container running the FastAPI server in the background. It will be running on port 8000 on your local machine so you can open your browser and navigate to [http://localhost:8000/docs](http://localhost:8000/docs) to see the available endpoints and to test them out! You can also use something like `curl` from your local machine too to call the api endpoints via CLI, or obviously, you can call them with something like the requests module in python!
+
+Note: If you try to connect to FastAPI from within another container, like the Streamlit app, you need to use the container name as the hostname instead of `localhost`. e.g. `https://fastapi:8000/my-api-endpoint`
+
+### Neo4j
+
+Neo4j is a graph database that allows us to store and query data in a graph format. This can be useful for storing data that has relationships between entities, such as social networks, recommendation systems, and knowledge graphs.
+
+Documentation: [https://neo4j.com/docs/](https://neo4j.com/docs/)
+
+The dev environment has a separate container running the Neo4j server in the background. The graph db server that you can connect to from code is running on port 7687. The db web interface that you can access via your browser is running on port 7474. You can navigate to [http://localhost:7474](http://localhost:7474) and log in!
+
+Username: `neo4j`
+Password: `secretpassword`
+
+Note: If you try to connect to the neo4j server from within another container, like the streamlit app or the fastapi app, you need to use the container name as the hostname instead of `localhost`. e.g. `neo4j://neo4j:7687`
 
 ## Making code available to all components
 
 The `thisapp` directory is set up so that all running components will have access to the python code underneath as a module.
 
+Documentation: [https://docs.streamlit.io/](https://docs.streamlit.io/)
+
 For example, if you wanted to create a FastAPI backend and Streamlit frontend that both use a common Pydantic model named `MyModel`, you could define it under the `thisapp` directory in a python file named `thisapp/my_model.py` and then both apps can simply do `from thisapp.my_model import MyModel` and have access to the same code!
 
 ## Available Python Modules
 
-Many common frameworks and libraries are already installed in the dev environment for your use. These include things like
+Many common frameworks and libraries are already installed in the dev environment for your use. These include things like:
 
-* 
+* Pydantic
 * LangChain
 * Llama-Index 
-* PyTorch
+* ChromaDB (for vector db)
+* Neo4j (for graph db, see above for how to connect)
+* PyTorch & Ray
+* Pandas & Geopandas
 * Huggingface Transformers and Diffusers
-* NumPy & SciPy
+* NumPy, SciPy, Dask
 * Scikit-learn
-* Matplotlib, Plotly, Seaborn for visualization
+* Matplotlib, Plotly, Seaborn (for visualization)
+* CartoPy (for maps)
 * OpenCV-Python
-* 
+* xgboost, nltk (and other various ML-related modules)
+* Others, check out `pyproject.toml` for the full list
 
+If you are missing a Python module you would like to use, it can be added as a dependency in the `pyproject.toml` file, running `poetry lock`, and rebuilding the Dev Container. 
 
+To add native libraries, the `Dockerfile` can be updated to install via the `apt` package manager and rebuilding the Dev Container. You could also update the Dockerfile to download, build and install something from source in a pinch.
+
+Feel free to ask hackathon staff for assistance.
