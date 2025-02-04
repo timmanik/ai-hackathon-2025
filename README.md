@@ -92,6 +92,7 @@ Many common frameworks and libraries are already installed in the dev environmen
 
 * Pydantic
 * LangChain
+* LangGraph
 * Llama-Index 
 * ChromaDB (for in-memory vector db)
 * Neo4j (for graph db, see above for how to connect)
@@ -103,6 +104,7 @@ Many common frameworks and libraries are already installed in the dev environmen
 * Matplotlib, Plotly, Seaborn (for visualization)
 * CartoPy (for maps)
 * OpenCV-Python
+* Mediapipe
 * xgboost, nltk (and other various ML-related modules)
 * Others, check out `pyproject.toml` for the full list
 
