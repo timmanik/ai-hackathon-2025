@@ -97,12 +97,12 @@ Many common frameworks and libraries are already installed in the dev environmen
 * ChromaDB (for in-memory vector db)
 * Neo4j (for graph db, see above for how to connect)
 * PyTorch & Ray
-* Pandas & Geopandas
+* Matplotlib, Plotly, Seaborn (for visualization)
+* Pandas
+* GeoPandas, CartoPy, GDAL (for maps / geospatial data)
 * Huggingface Transformers and Diffusers
 * NumPy, SciPy, Dask
 * Scikit-learn
-* Matplotlib, Plotly, Seaborn (for visualization)
-* CartoPy (for maps)
 * FFMPEG
 * OpenCV-Python
 * Mediapipe

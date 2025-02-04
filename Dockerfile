@@ -10,6 +10,7 @@ RUN apt-get update \
         build-essential \
         curl \
         ffmpeg \
+        libgdal-dev \
         libsm6 \
         libxext6 \
     && rm -rf /var/lib/apt/lists/* \
