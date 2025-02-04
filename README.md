@@ -103,6 +103,7 @@ Many common frameworks and libraries are already installed in the dev environmen
 * Scikit-learn
 * Matplotlib, Plotly, Seaborn (for visualization)
 * CartoPy (for maps)
+* FFMPEG
 * OpenCV-Python
 * Mediapipe
 * xgboost, nltk (and other various ML-related modules)
