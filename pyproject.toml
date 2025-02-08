@@ -62,7 +62,8 @@ fastapi = [
 
 streamlit = [
     "streamlit",
-    "audio_recorder_streamlit"
+    "audio_recorder_streamlit",
+    "streamlit_mic_recorder"
 ]
 
 [tool.poetry.group.dev.dependencies]
