@@ -7,7 +7,7 @@ name = "cornell-ai-hackathon-2025"
 version = "0.1.0"
 description = "Streamlit app development environment for the 2025 Cornell AI Hackathon"
 authors = ["Marty Sullivan <marty@martysullivan.com>"]
-include = ["thisapp"]
+packages = [{ include = "thisapp" }]
 
 [tool.poetry.dependencies]
 python = "^3.12"
@@ -17,6 +17,7 @@ aiofiles = "^24"
 aiohttp = "^3"
 accelerate = "^1"
 albumentations = "^2"
+assemblyai = "0.37.0"
 bokeh = "^3"
 cartopy = "^0.24"
 chromadb = "^0.6"
