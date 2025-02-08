@@ -1,6 +1,7 @@
 # Import libraries
 import os
 import requests
+import boto3
 from fastapi import APIRouter, HTTPException
 from openai import OpenAI
 from dotenv import load_dotenv
@@ -14,28 +15,41 @@ client = OpenAI()
 # Create an APIRouter instance
 router = APIRouter()
 
-# Function to download an audio file from a URL
-# TODO: check this function--ChatGPT wrote it
-def download_audio(url: str, save_path: str):
+# Initialize S3 client
+s3 = boto3.client('s3')
+
+# Function to download an audio file from a URL or S3
+def download_audio(source: str, save_path: str, is_s3: bool = False, bucket_name: str = None):
     """
-    Download an audio file from a URL.
+    Download an audio file from a URL or an S3 bucket.
 
     Input:
-    url: str: URL of the audio file
+    source: str: URL of the audio file OR S3 key if downloading from S3
     save_path: str: Path to save the downloaded audio file
+    is_s3: bool: Flag to indicate if the source is from S3 (default: False)
+    bucket_name: str: Required if downloading from S3
 
     Output:
     str: Path to the saved audio file
     """
     try:
-        response = requests.get(url, stream=True)
-        response.raise_for_status()
-        with open(save_path, "wb") as f:
-            for chunk in response.iter_content(chunk_size=8192):
-                f.write(chunk)
+        if is_s3:
+            if not bucket_name:
+                raise HTTPException(status_code=400, detail="Bucket name is required for S3 downloads.")
+            s3.download_file(bucket_name, source, save_path)
+        else:
+            response = requests.get(source, stream=True)
+            response.raise_for_status()
+            with open(save_path, "wb") as f:
+                for chunk in response.iter_content(chunk_size=8192):
+                    f.write(chunk)
+        
         return save_path
+
     except requests.exceptions.RequestException as e:
-        raise HTTPException(status_code=400, detail=f"Error downloading file: {e}")
+        raise HTTPException(status_code=400, detail=f"Error downloading file from URL: {e}")
+    except Exception as e:
+        raise HTTPException(status_code=400, detail=f"Error downloading file from S3: {e}")
 
 # Function to check file size
 def check_acceptable_file_size(file_path):
@@ -48,7 +62,6 @@ def check_acceptable_file_size(file_path):
     Output:
     bool: True if file size is less than 25 MB, False otherwise
     """
-    # https://help.openai.com/en/articles/7031512-whisper-audio-api-faq
     file_size = os.path.getsize(file_path) / (1024 * 1024)
     return file_size < 25
 
@@ -63,7 +76,6 @@ def check_acceptable_file_extension(file_path):
     Output:
     bool: True if file extension is allowed, False otherwise
     """
-    # https://help.openai.com/en/articles/7031512-whisper-audio-api-faq
     allowed_extensions = {".m4a", ".mp3", ".webm", ".mp4", ".mpga", ".wav", ".mpeg"}
     return os.path.splitext(file_path)[1].lower() in allowed_extensions
 
@@ -85,19 +97,20 @@ def transcribe_audio(file_path):
         raise HTTPException(status_code=400, detail='Unsupported file type. Must be one of: ".m4a", ".mp3", ".webm", ".mp4", ".mpga", ".wav", ".mpeg"')
     
     with open(file_path, "rb") as audio_file:
-        # https://platform.openai.com/docs/guides/speech-to-text
         transcription = client.audio.transcriptions.create(model="openai.whisper", file=audio_file)
     
     return transcription.text
 
-# FastAPI Route to transcribe audio from URL
+# FastAPI Route to transcribe audio from a URL or S3
 @router.get("/transcribe")
-async def transcribe_audio_from_url(url: str, remove_temp_file: bool = True):
+async def transcribe_audio_from_source(source: str, is_s3: bool = False, bucket_name: str = None, remove_temp_file: bool = True):
     """
-    FastAPI endpoint to transcribe an audio file from a given URL.
+    FastAPI endpoint to transcribe an audio file from a given URL or S3 bucket.
 
     Input:
-    url: str: URL of the audio file
+    source: str: URL of the audio file OR S3 key if downloading from S3
+    is_s3: bool: Flag to indicate if the source is from S3 (default: False)
+    bucket_name: str: Required if downloading from S3
     remove_temp_file: bool: Whether to remove the temporary audio file after transcription (default: True)
 
     Output:
@@ -105,7 +118,7 @@ async def transcribe_audio_from_url(url: str, remove_temp_file: bool = True):
     """
     try:
         temp_audio_path = "temp_audio_file"
-        downloaded_file = download_audio(url, temp_audio_path)
+        downloaded_file = download_audio(source, temp_audio_path, is_s3, bucket_name)
         transcription = transcribe_audio(downloaded_file)
         
         # Only remove the file if remove_temp_file is True
@@ -119,21 +132,47 @@ async def transcribe_audio_from_url(url: str, remove_temp_file: bool = True):
 if __name__ == '__main__':
     print("Running transcribe.py standalone for testing...")
 
+    # Local file test
     temp_audio_path = "test_recordings/test.m4a"
     remove_temp_file = False  # Set to False to keep the file
 
     try:
-        print("Checking file validation...")
+        print("Checking file validation for local file...")
         assert check_acceptable_file_size(temp_audio_path)
         assert check_acceptable_file_extension(temp_audio_path)
 
-        print("Transcribing test file...")
+        print("Transcribing test local file...")
         assert transcribe_audio(temp_audio_path) == "Hello, this is a test recording, this is a test recording, my name is Emilio, is this working?"
 
-        print("All tests passed successfully!")
+        print("Local file test passed successfully!")
 
-        # Only remove the file if remove_temp_file is True
         if remove_temp_file:
             os.remove(temp_audio_path)
     except Exception as e:
-        print("Test failed:", e)
+        print("Local file test failed:", e)
+
+    # S3 test case
+    print("\nTesting S3 file download and transcription...")
+
+    bucket_name = "yap.data"
+    file_key = "recordings/test.m4a"
+    local_filename = "test_from_s3.m4a"
+
+    try:
+        print(f"Downloading {file_key} from bucket {bucket_name}...")
+        download_audio(file_key, local_filename, is_s3=True, bucket_name=bucket_name)
+
+        print("Checking file validation for S3 file...")
+        assert check_acceptable_file_size(local_filename)
+        assert check_acceptable_file_extension(local_filename)
+
+        print("Transcribing test S3 file...")
+        transcription_result = transcribe_audio(local_filename)
+        print(f"Transcription: {transcription_result}")
+
+        print("S3 file test passed successfully!")
+
+        if remove_temp_file:
+            os.remove(local_filename)
+    except Exception as e:
+        print("S3 file test failed:", e)
