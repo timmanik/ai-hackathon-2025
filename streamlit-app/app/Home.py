@@ -1,4 +1,7 @@
 import streamlit as st
+import os
+import datetime
+from streamlit_mic_recorder import mic_recorder
 
 # Configure the page
 st.set_page_config(
@@ -13,26 +16,31 @@ st.markdown("""
         background-color: #FFFDD0;  /* Light cream color */
         color: black;
     }
-    .stButton>button {
-        background-color: white;
-        color: black;
-        border: 2px solid black;
-        padding: 15px 32px;
-        text-align: center;
-        text-decoration: none;
-        display: block;
-        font-size: 3rem !important;
-        font-family: "Source Sans Pro", sans-serif;
+    /* Style for mic recorder button */
+    button.MuiButtonBase-root {
+        background-color: white !important;
+        color: black !important;
+        border: 2px solid black !important;
+        padding: 10px 20px !important;
+        text-align: center !important;
+        text-decoration: none !important;
+        display: inline-block !important;
+        font-size: 1.5rem !important;
+        font-family: "Source Sans Pro", sans-serif !important;
         font-weight: 900 !important;
-        -webkit-font-weight: 900 !important;
-        -moz-font-weight: 900 !important;
-        text-rendering: geometricPrecision;
-        -webkit-font-smoothing: antialiased;
-        margin: 0 auto;
-        cursor: pointer;
-        border-radius: 4px;
-        width: auto;
-        min-width: 200px;
+        margin: 0 auto !important;
+        cursor: pointer !important;
+        border-radius: 50% !important;
+        width: 120px !important;
+        height: 120px !important;
+        min-width: unset !important;
+        max-width: unset !important;
+        transition: all 0.3s ease !important;
+        box-shadow: none !important;
+    }
+    button.MuiButtonBase-root:hover {
+        transform: scale(1.05) !important;
+        box-shadow: 0 4px 8px rgba(0,0,0,0.1) !important;
     }
     /* Additional specific style for the button text */
     .stButton>button span {
@@ -91,8 +99,44 @@ st.markdown('<div class="vertical-center">', unsafe_allow_html=True)
 _, col, _ = st.columns([1, 1, 1])
 
 with col:
-    record_button = st.button("Record")
-    if record_button:
-        st.write("Recording functionality will be implemented here")
+    # Initialize session states
+    if 'is_recording' not in st.session_state:
+        st.session_state.is_recording = False
+    if 'audio_data' not in st.session_state:
+        st.session_state.audio_data = None
+    
+    # Use mic_recorder instead of audio_recorder
+    audio = mic_recorder(
+        start_prompt="Record",
+        stop_prompt="Stop",
+        key='recorder'
+    )
+    
+    # Handle recorded audio
+    if audio:
+        # Store the audio data in session state
+        st.session_state.audio_data = audio['bytes']
+        
+        # Save to root/s3/temp/
+        temp_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "s3", "temp")
+        os.makedirs(temp_dir, exist_ok=True)
+        
+        # Generate unique filename with timestamp
+        timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
+        filename = os.path.join(temp_dir, f"audio_{timestamp}.wav")
+        
+        # Save the audio file
+        with open(filename, "wb") as f:
+            f.write(audio['bytes'])
+
+        
+        
+        # # Play back the recorded audio
+        # st.audio(audio['bytes'])
+        # st.success(f"Audio saved to: {filename}")
+
+    # Always show the last recording if it exists
+    elif st.session_state.audio_data:
+        st.audio(st.session_state.audio_data)
 
 st.markdown('</div>', unsafe_allow_html=True)
