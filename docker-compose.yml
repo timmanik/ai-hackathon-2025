@@ -47,7 +47,7 @@ services:
       APPLICATION: 'cornell-ai-hackathon-2025'
       AWS_PROFILE: 'cornell-ai-hackathon-2025'
     volumes:
-      - '${HOME}/.aws:/root/.aws'
+      - '${HOME}/.aws:/home/fastapi/.aws'
       - './fastapi-app:/code'
       - './thisapp:/code/thisapp'
       - '${PWD}/.env:/code/.env'
