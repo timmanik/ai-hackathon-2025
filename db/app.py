@@ -6,13 +6,16 @@ import os
 
 
 # define db filename
-db_filename = "data.db"
+instance_path = os.path.join(os.path.dirname(__file__), "instance")
+db_filename = os.path.join(instance_path, "data.db")
+
 app = Flask(__name__)
 
 # Add secret key for session management
 app.secret_key = os.urandom(24)
 
-app.config["SQLALCHEMY_DATABASE_URI"] = "sqlite:///data.db"
+# Use absolute path for database in instance folder
+app.config["SQLALCHEMY_DATABASE_URI"] = f"sqlite:///{db_filename}"
 app.config["SQLALCHEMY_TRACK_MODIFICATIONS"] = False
 app.config["SQLALCHEMY_ECHO"] = True
 
@@ -20,6 +23,9 @@ app.config["SQLALCHEMY_ECHO"] = True
 # initialize app
 db.init_app(app)
 with app.app_context():
+    # Ensure instance directory exists
+    os.makedirs(instance_path, exist_ok=True)
+    
     db.create_all()
     # Create default user if it doesn't exist
     default_user = User.query.first()
@@ -57,16 +63,45 @@ def root():
 @app.route("/api/journal_entries/", methods=["POST"])
 def create_journal_entry():
     body = json.loads(request.data)
-    try:
-        recording_url = body["recording_url"]
-    except:
-        return failure_response("Invalid request body features; Must contain recording_url, transcription")
-    
     user_id = get_current_user()
-    new_entry = JournalEntry(user_id=user_id, recording_url=recording_url)
-    db.session.add(new_entry)
-    db.session.commit()
-    return success_response(new_entry.serialize(), 201)
+    
+    print("Received data:", body)  # Add logging
+    
+    # Extract fields from request body, handling nested dictionaries
+    entry_data = {
+        "user_id": user_id,
+        "title": body.get("title", {}).get("title", "N/A"),  # Extract nested title
+        "summary": body.get("summary", {}).get("summary", "N/A"),  # Extract nested summary
+        "transcription": body.get("transcription", "N/A"),
+        "key_insights": body.get("keypoints", {}).get("key_points", "N/A")  # Extract nested key_points
+    }
+    
+    try:
+        print("Creating entry with data:", entry_data)  # Add logging
+        new_entry = JournalEntry(**entry_data)
+        print("Created JournalEntry object")  # Add logging
+        
+        db.session.add(new_entry)
+        print("Added to session")  # Add logging
+        
+        db.session.flush()  # Flush to get the ID
+        print(f"Entry ID after flush: {new_entry.entry_id}")  # Add logging
+        
+        db.session.commit()
+        print(f"Committed successfully. Entry ID: {new_entry.entry_id}")  # Add logging
+        
+        # Verify the entry exists
+        saved_entry = JournalEntry.query.get(new_entry.entry_id)
+        if saved_entry:
+            print(f"Successfully verified entry in database: {saved_entry.serialize()}")
+        else:
+            print("Warning: Entry not found after commit!")
+            
+        return success_response(new_entry.serialize(), 201)
+    except Exception as e:
+        print(f"Error creating entry: {str(e)}")  # Add logging
+        db.session.rollback()
+        return failure_response(f"Failed to create entry: {str(e)}", 500)
 
 
 
@@ -147,7 +182,18 @@ def get_journal_entries_by_date():
         return {"error": "No date provided"}, 400
     
 
+@app.route("/api/test/")
+def test_db():
+    try:
+        # Try to query the users table
+        users = User.query.all()
+        return success_response({
+            "message": "Database connection successful",
+            "user_count": len(users)
+        })
+    except Exception as e:
+        return failure_response(f"Database error: {str(e)}")
 
-    
+
 if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=8000, debug=False)
+    app.run(host="0.0.0.0", port=8080, debug=False)

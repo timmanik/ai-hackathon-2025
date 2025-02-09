@@ -31,11 +31,9 @@ class JournalEntry(db.Model):
     Has a one-to-many relationship with users
     """
     __tablename__ = "journal_entries"
-    __table_args__ = {'sqlite_autoincrement': True}  # This ensures SQLite never reuses IDs
+    __table_args__ = {'sqlite_autoincrement': True}
     
-    # Modified entry_id to ensure globally unique IDs
     entry_id = db.Column(db.Integer, primary_key=True, autoincrement=True)
-    recording_url = db.Column(db.String, nullable=True, default="N/A")
     user_id = db.Column(db.Integer, db.ForeignKey("users.id"), nullable=False)
     datetime_created = db.Column(db.DateTime, nullable=False)
     
@@ -44,17 +42,17 @@ class JournalEntry(db.Model):
     summary = db.Column(db.String, nullable=True, default="N/A")
     transcription = db.Column(db.String, nullable=True, default="N/A")
     key_insights = db.Column(db.String, nullable=True, default="N/A")
-    #one_word_sentiment = db.Column(db.String, nullable=True, default="N/A")
-    
     
     # Add relationship to user
     user = db.relationship("User", back_populates="journal_entries")
     
     def __init__(self, **kwargs):
         self.user_id = kwargs.get("user_id")
-        self.recording_url = kwargs.get("recording_url")
-        #self.transcription = kwargs.get("transcription")
         self.datetime_created = kwargs.get("datetime_created") or datetime.now()
+        self.title = kwargs.get("title", "N/A")
+        self.summary = kwargs.get("summary", "N/A")
+        self.transcription = kwargs.get("transcription", "N/A")
+        self.key_insights = kwargs.get("key_insights", "N/A")
 
     def serialize(self):
         return {
@@ -62,11 +60,9 @@ class JournalEntry(db.Model):
             "user_id": self.user_id,
             "title": self.title,
             "datetime_created": self.datetime_created,
-            "recording_url": self.recording_url,
             "transcription": self.transcription,
             "summary": self.summary,
             "key_insights": self.key_insights,
-            #"one_word_sentiment": self.one_word_sentiment
         }
     
     

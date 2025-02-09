@@ -4,13 +4,26 @@ import datetime
 from streamlit_mic_recorder import mic_recorder
 import httpx
 import asyncio
+from dotenv import load_dotenv
+from flask import Flask, request, jsonify
 
 
-server_url = "http://127.0.0.1:8000"
+server_url = "http://localhost:8000"
+
+load_dotenv()
+
+
+transcrition_api = os.getenv("OPENAI_API_KEY")
 
 async def get_transcription(entry_id, audio_path):
+    # Get API token from environment variable
+    transcription_api = os.getenv('TRANSCRIPTION_API_TOKEN')
+    if not transcription_api:
+        st.error("Missing TRANSCRIPTION_API_TOKEN in environment variables")
+        return None
+
     headers = {
-        "Authorization": f"sk-HTW_Kc5P4c6vUfOSatR9eQ", # todo: load dotenv
+        "Authorization": f"Bearer {transcription_api}",  # Add 'Bearer ' prefix if required
         "Content-Type": "application/json"
     }
 
@@ -29,9 +42,49 @@ async def get_transcription(entry_id, audio_path):
     except Exception as e:
         st.error(f"An error occurred during transcription: {str(e)}")
         return None
+    
 
-
-
+async def generate_analysis(transcript):
+        """
+        Generate the analysis for a given transcript
+        """
+        script = {
+                "transcription": {
+                        "text": transcript,
+                        "metadata": {
+                        "timestamp": "2024-03-14T12:00:00Z"
+                        }
+                }
+        }
+        
+        prefix = "/analyze/"
+        endpoints = {
+                "title": server_url + prefix + "generate_title/",
+                "summary": server_url + prefix + "generate_summary/",
+                "keypoints": server_url + prefix + "generate_keypoints/"
+        }
+        
+        results = {}
+        
+        async with httpx.AsyncClient(timeout=30.0) as client:
+                for name, endpoint in endpoints.items():
+                        try:
+                                response = await client.post(endpoint, json=script)
+                                response.raise_for_status()  # Raise an exception for bad status codes
+                                results[name] = response.json()
+                                st.write(f"{name.capitalize()} Response:", results[name])
+                        except httpx.TimeoutException:
+                                st.write(f"Timeout while fetching {name}")
+                                results[name] = None
+                        except httpx.HTTPError as e:
+                                st.write(f"HTTP error occurred while fetching {name}: {e}")
+                                results[name] = None
+                        except Exception as e:
+                                st.write(f"Unexpected error while fetching {name}: {e}")
+                                results[name] = None
+                                
+        
+        return results
 
 # Configure the page
 st.set_page_config(
@@ -42,27 +95,29 @@ st.set_page_config(
 # Custom CSS for styling
 st.markdown("""
     <style>
+    @import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,700&display=swap');
+    
     .stApp {
-        background-color: #FFFDD0;  /* Light cream color */
-        color: black;
+        background-color: #f7f1eb;
+        color: #2b1810;  /* Updated from #4a3524 */
     }
     /* Style for mic recorder button */
     button.MuiButtonBase-root {
         background-color: white !important;
-        color: black !important;
-        border: 2px solid black !important;
+        color: #2b1810 !important;
+        border: 2px solid #2b1810 !important;
         padding: 10px 20px !important;
         text-align: center !important;
         text-decoration: none !important;
         display: inline-block !important;
-        font-size: 1.5rem !important;
-        font-family: "Source Sans Pro", sans-serif !important;
-        font-weight: 900 !important;
+        font-size: 3rem !important;
+        font-family: 'Fraunces', serif !important;
+        font-weight: bold !important;
         margin: 0 auto !important;
         cursor: pointer !important;
         border-radius: 50% !important;
-        width: 120px !important;
-        height: 120px !important;
+        width: 160px !important;  /* Increased from 120px */
+        height: 160px !important;  /* Increased from 120px */
         min-width: unset !important;
         max-width: unset !important;
         transition: all 0.3s ease !important;
@@ -88,20 +143,23 @@ st.markdown("""
         position: absolute;
         left: 50%;
         transform: translateX(-50%);
-        font-size: 3rem !important;  /* Increased size and added !important */
+        font-size: 3rem !important;
+        font-family: 'Fraunces', serif !important;
         font-weight: bold;
         margin: 0;
         z-index: 1;
+        color: #2b1810;  /* Updated from #4a3524 */
     }
     /* Right align the Entries title with padding */
     .title-text-right {
         font-size: 1.75rem !important;
+        font-family: 'Fraunces', serif !important;
         font-weight: bold;
         margin: 0;
         margin-left: auto;
-        padding-right: 100px;  /* Increased from 60px to 100px to move it more to the left */
+        padding-right: 100px;
         text-decoration: none;
-        color: black;
+        color: #2b1810;  /* Updated from #4a3524 */
     }
     .title-text-right:hover {
         opacity: 0.7;
@@ -118,7 +176,7 @@ st.markdown("""
     <div class="header-container">
         <div style="width: 33%"></div>
         <p class="title-text-center">yap!</p>
-        <a href="/entryList" class="title-text-right" target="_self">Entries</a>
+        <a href="entryList" class="title-text-right">Entries</a>
     </div>
     """, unsafe_allow_html=True)
 
@@ -147,28 +205,23 @@ with col:
         # Store the audio data in session state
         st.session_state.audio_data = audio['bytes']
         
-        # Save to root/s3/temp/
-        # st.write cwd
-        st.write("were here")
-        st.write(os.getcwd())
-        st.write(os.getcwd() + "/fastapi-app/app/recordings") # correct path
+        
+        # st.write(os.getcwd() + "/fastapi-app/app/recordings") # correct path
         full_path = os.path.join(os.path.dirname(__file__))
-        st.write(f"Full path: {full_path}")
         temp_dir = "fastapi-app/app/recordings/"
         path = os.path.join(full_path, temp_dir)
-        st.write(f"Path: {path}")
         os.makedirs(path, exist_ok=True)
         
         # Generate unique filename with timestamp
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
         filename = os.path.join(path, "../", f"audio_{timestamp}.wav")
-        st.write(f"Filename: {filename}")
+        # st.write(f"Filename: {filename}")
         
         # Save the audio file
         with open(filename, "wb") as f:
             f.write(audio['bytes'])
 
-        st.write("were here 2")
+        # st.write("were here 2")
         file_path = os.path.join(os.getcwd(), "fastapi-app", "app", "recordings", f"audio_{timestamp}.wav")
         
         # Create directory if it doesn't exist
@@ -178,27 +231,50 @@ with col:
         try:
             with open(file_path, "wb") as f:
                 f.write(audio['bytes'])
-            st.write(f"Successfully wrote to: {file_path}")
+            # st.write(f"Successfully wrote to: {file_path}")
         except Exception as e:
             st.error(f"Error writing file: {str(e)}")
             
-        st.write("wrote to recordings")
+        # st.write("wrote to recordings")
 
 
         try:
             result = asyncio.run(get_transcription(1, audio_path=file_path))
-            if result:
-                st.success("Transcription completed successfully!")
-                st.write(result)
+            # if result:
+                # st.success("Transcription completed successfully!")
+                # st.write(result)
         except Exception as e:
             st.error(f"Error during transcription process: {str(e)}")
         
-        # # Play back the recorded audio
-        # st.audio(audio['bytes'])
-        # st.success(f"Audio saved to: {filename}")
+
+        # Process the audio file
+        try:
+            analysis_data = asyncio.run(generate_analysis(result))
+            if analysis_data:
+                # Send data to database
+                try:
+                    db_url = "http://localhost:8080/api/journal_entries/"
+                    all_update_data = result | analysis_data
+                    response = httpx.post(db_url, json=all_update_data)
+                    response.raise_for_status()
+                    
+                    title = analysis_data.get('title', {}).get('title', 'your entry')
+                    
+                    # Clear any previous outputs
+                    st.empty()
+                    
+                    # Display success message with the latest entry ID and no underline
+                    st.markdown(
+                        f'yap sesh finished. Check out your <a href="/entryList" style="text-decoration: none">{title}</a> entry',
+                        unsafe_allow_html=True
+                    )
+                except Exception as e:
+                    st.error(f"Error saving to database: {str(e)}")
+        except Exception as e:
+            st.error(f"Error during transcription process: {str(e)}")
 
     # Always show the last recording if it exists
-    elif st.session_state.audio_data:
+    if st.session_state.audio_data:
         st.audio(st.session_state.audio_data)
 
 st.markdown('</div>', unsafe_allow_html=True)

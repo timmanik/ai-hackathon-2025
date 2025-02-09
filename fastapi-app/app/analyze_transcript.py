@@ -1,16 +1,36 @@
-
 import boto3
 import json
 from datetime import datetime
 from botocore.exceptions import ClientError
-
+from fastapi import APIRouter
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
+import asyncio
+from typing import Union
 
-session = boto3.Session()
-region = session.region_name
-modelId = 'anthropic.claude-3-haiku-20240307-v1:0'
-bedrock_client = boto3.client(service_name = 'bedrock-runtime', region_name = region,)
+# Add AWS credentials
+session = boto3.Session(
+    aws_access_key_id=os.getenv('AWS_ACCESS_KEY_ID'),
+    aws_secret_access_key=os.getenv('AWS_SECRET_ACCESS_KEY'), 
+    region_name=os.getenv('AWS_DEFAULT_REGION')
+)
+
+region = 'us-west-2'
+modelId = 'anthropic.claude-3-5-sonnet-20241022-v2:0'
+bedrock_client = session.client(
+    service_name='bedrock-runtime',
+    region_name=region
+)
+
+app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Adjust this in production
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 class PromptGenerator:
     @staticmethod
@@ -171,7 +191,7 @@ class PromptGenerator:
         
         PRECOGNITION = "Think about your answer first before you respond. Do not reveal any sensitive information. Don't make it extreemly negative. "
         
-        OUTPUT_FORMATTING = """ Leave out any sensitive information like names. Also do MM-DD-YYYY "Title" Make it 45 characters. No preamble just the thing specifically asked for."""
+        OUTPUT_FORMATTING = """ Leave out any sensitive information like names. No preamble just the thing specifically asked for."""
         
         PREFILL = None
 
@@ -205,9 +225,10 @@ class PromptGenerator:
         
         return PROMPT, PREFILL
     
-def get_completion(prompt, system_prompt=None, prefill=None):
+    
+async def get_completion(prompt, system_prompt=None, prefill=None):
     inference_config = {
-        "temperature": 0.0,
+        "temperature": 0.2,
          "maxTokens": 200
     }
     converse_api_params = {
@@ -220,66 +241,64 @@ def get_completion(prompt, system_prompt=None, prefill=None):
     if prefill:
         converse_api_params["messages"].append({"role": "assistant", "content": [{"text": prefill}]})
     try:
-        response = bedrock_client.converse(**converse_api_params)
+        # Use asyncio to run the blocking bedrock_client.converse call
+        response = await asyncio.get_event_loop().run_in_executor(
+            None, 
+            lambda: bedrock_client.converse(**converse_api_params)
+        )
         text_content = response['output']['message']['content'][0]['text']
         return text_content
 
     except ClientError as err:
         message = err.response['Error']['Message']
-        print(f"A client error occured: {message}")
+        print(f"A client error occurred: {message}")
+        raise HTTPException(status_code=500, detail=message)
 
 from pydantic import BaseModel
 
 class TranscriptionRequest(BaseModel):
-    transcription: str
+    transcription: Union[dict, str]  # Accepts either a dictionary or string
     
+    class Config:
+        json_schema_extra = {
+            "example": {
+                "transcription": {
+                    "text": "Your journal entry text here",
+                    "metadata": {
+                        "timestamp": "2024-03-14T12:00:00Z"
+                    }
+                }
+            }
+        }
 
-@app.post("/generate_summary")
+router = APIRouter()
+
+@router.post("/generate_summary/")
 async def generate_summary(request: TranscriptionRequest):
-
     summary_prompt = PromptGenerator()
     try: 
-        prompt, prefill = summary_prompt.generate_summary_prompt(TranscriptionRequest.transcription)
-        summary = await get_completion(prompt,prefill) 
-
+        prompt, prefill = summary_prompt.generate_summary_prompt(request.transcription)
+        summary = await get_completion(prompt, prefill) 
         return {"summary": summary}
-
     except Exception as e: 
-        print(e) 
+        raise HTTPException(status_code=500, detail=str(e))
 
-@app.post("/generate_key_points")
-async def generate_key_points(request: TranscriptionRequest):
+@router.post("/generate_keypoints/")
+async def generate_keypoints(request: TranscriptionRequest):
     key_points_prompt = PromptGenerator()
     try:
-        prompt, prefill = key_points_prompt.generate_key_points_prompt(TranscriptionRequest.transcription)
-        key_points = await get_completion(prompt,prefill)
+        prompt, prefill = key_points_prompt.generate_key_points_prompt(request.transcription)
+        key_points = await get_completion(prompt, prefill)
         return {"key_points": key_points}
     except Exception as e:
-        print(e) 
+        raise HTTPException(status_code=500, detail=str(e))
 
-
-@app.post("/generate_title")
-async def generate_key_points(request: TranscriptionRequest):
+@router.post("/generate_title/")
+async def generate_title(request: TranscriptionRequest):
     title_prompt = PromptGenerator()
     try:
-        prompt, prefill = title_prompt.generate_title_prompt(TranscriptionRequest.transcription)
-        title = await get_completion(prompt,prefill)
+        prompt, prefill = title_prompt.generate_title_prompt(request.transcription)
+        title = await get_completion(prompt, prefill)
         return {"title": title}
     except Exception as e:
-        print(e) 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
-
+        raise HTTPException(status_code=500, detail=str(e))
