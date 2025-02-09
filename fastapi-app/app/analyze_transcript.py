@@ -7,6 +7,7 @@ from fastapi import FastAPI, HTTPException, Depends
 from fastapi.middleware.cors import CORSMiddleware
 import asyncio
 from typing import Union
+import os
 
 # Add AWS credentials
 session = boto3.Session(

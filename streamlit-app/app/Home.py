@@ -13,14 +13,15 @@ server_url = "http://localhost:8000"
 load_dotenv()
 
 
-transcrition_api = os.getenv("OPENAI_API_KEY")
+transcription_api = os.getenv("OPENAI_API_KEY")
 
 async def get_transcription(entry_id, audio_path):
     # Get API token from environment variable
-    transcription_api = os.getenv('TRANSCRIPTION_API_TOKEN')
-    if not transcription_api:
-        st.error("Missing TRANSCRIPTION_API_TOKEN in environment variables")
-        return None
+    # transcription_api = os.getenv('TRANSCRIPTION_API_TOKEN')
+    # if not transcription_api:
+    #     st.error("Missing TRANSCRIPTION_API_TOKEN in environment variables")
+    #     return None
+
 
     headers = {
         "Authorization": f"Bearer {transcription_api}",  # Add 'Bearer ' prefix if required
