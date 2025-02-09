@@ -6,23 +6,29 @@ import httpx
 import asyncio
 
 
-server_url = "http://0.0.0.0:8000"
+server_url = "http://127.0.0.1:8000"
 
 async def get_transcription(entry_id, audio_path):
-
     headers = {
-    "Authorization": f"sk-HTW_Kc5P4c6vUfOSatR9eQ", # todo: load dotenv
-    "Content-Type": "application/json"
+        "Authorization": f"sk-HTW_Kc5P4c6vUfOSatR9eQ", # todo: load dotenv
+        "Content-Type": "application/json"
     }
 
-    async with httpx.AsyncClient(timeout=30.0) as client:
-        response = await client.get(
-        f"{server_url}/api/transcribe",
-        params={"filepath": audio_path},
-        headers=headers
-        )
-    response.raise_for_status()
-    return response.json()
+    try:
+        async with httpx.AsyncClient(timeout=30.0) as client:
+            response = await client.get(
+                f"{server_url}/api/transcribe",
+                params={"filepath": audio_path},
+                headers=headers
+            )
+            response.raise_for_status()
+            return response.json()
+    except httpx.ConnectError:
+        st.error("Could not connect to the transcription server. Please make sure the FastAPI server is running.")
+        return None
+    except Exception as e:
+        st.error(f"An error occurred during transcription: {str(e)}")
+        return None
 
 
 
@@ -179,7 +185,13 @@ with col:
         st.write("wrote to recordings")
 
 
-        asyncio.run(get_transcription(1, audio_path=file_path))
+        try:
+            result = asyncio.run(get_transcription(1, audio_path=file_path))
+            if result:
+                st.success("Transcription completed successfully!")
+                st.write(result)
+        except Exception as e:
+            st.error(f"Error during transcription process: {str(e)}")
         
         # # Play back the recorded audio
         # st.audio(audio['bytes'])
