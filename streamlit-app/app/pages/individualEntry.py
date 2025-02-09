@@ -21,6 +21,16 @@ def display_entry(entry):
         background-color: #FFFDD0;
         color: #000000;
     }
+    .yap-title {
+        position: absolute;
+        top: 20px;
+        font-size: 32px;
+        font-weight: bold;
+        color: #000000;
+        z-index: 9999;
+        background-color: transparent;
+        pointer-events: none;
+    }
     /* Override Streamlit's default text colors */
     .stMarkdown, .stText, p, span, div {
         color: #000000 !important;
@@ -28,6 +38,7 @@ def display_entry(entry):
     .entry-title {
         font-size: 2.5rem;
         font-weight: bold;
+        margin-top: 60px;
         margin-bottom: 0.5rem;
         color: #000000;
     }
@@ -64,6 +75,9 @@ def display_entry(entry):
     </style>
     """, unsafe_allow_html=True)
 
+    # Add the yap! title
+    st.markdown('<div class="yap-title">yap!</div>', unsafe_allow_html=True)
+    
     st.markdown(f'<div class="entry-title">{entry["title"]}</div>', unsafe_allow_html=True)
     st.markdown(f'<div class="entry-date">{entry["date"]} {entry["time"]}</div>', unsafe_allow_html=True)
 

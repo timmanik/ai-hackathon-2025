@@ -1,7 +1,7 @@
 from contextlib import asynccontextmanager
 from dotenv import load_dotenv
 from fastapi import FastAPI
-from app.transcribe import router as transcribe_router  # Import transcribe router
+from transcribe import router as transcribe_router  # Import transcribe router
 
 load_dotenv()
 

@@ -15,15 +15,23 @@ st.markdown("""
         background-color: #FFFDD0;  /* Light cream color - same as Home.py */
         color: black;
     }
+    .yap-title {
+        position: absolute;
+        top: 20px;
+        font-size: 32px;     /* Made larger */
+        font-weight: bold;
+        color: #000000;
+        z-index: 9999;
+        background-color: transparent;
+        pointer-events: none;
+    }
     .entry-title-header {
         font-size: 2.5rem;
         font-weight: bold;
+        margin-top: 60px;    /* Added margin-top to create space */
         margin-bottom: 0.5rem;
         color: #000000;
-        text-align: left;
-        padding: 20px 0 20px 20px;  /* Changed padding to only left and vertical */
-        max-width: 800px;
-        margin-left: 20px;  /* Changed from margin: 0 auto to specific left margin */
+        padding: 20px 0 20px 20px;
     }
     .entry-list {
         max-width: 800px;
@@ -51,6 +59,9 @@ st.markdown("""
     }
     </style>
     """, unsafe_allow_html=True)
+
+# Add the yap! title
+st.markdown('<div class="yap-title">yap!</div>', unsafe_allow_html=True)
 
 # Load sample entries from JSON file
 def load_entries():

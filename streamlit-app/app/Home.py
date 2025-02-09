@@ -2,6 +2,30 @@ import streamlit as st
 import os
 import datetime
 from streamlit_mic_recorder import mic_recorder
+import httpx
+import asyncio
+
+
+server_url = "http://0.0.0.0:8000"
+
+async def get_transcription(entry_id, audio_path):
+
+    headers = {
+    "Authorization": f"sk-HTW_Kc5P4c6vUfOSatR9eQ", # todo: load dotenv
+    "Content-Type": "application/json"
+    }
+
+    async with httpx.AsyncClient(timeout=30.0) as client:
+        response = await client.get(
+        f"{server_url}/api/transcribe",
+        params={"filepath": audio_path},
+        headers=headers
+        )
+    response.raise_for_status()
+    return response.json()
+
+
+
 
 # Configure the page
 st.set_page_config(
@@ -118,18 +142,44 @@ with col:
         st.session_state.audio_data = audio['bytes']
         
         # Save to root/s3/temp/
-        temp_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.dirname(__file__))), "s3", "temp")
-        os.makedirs(temp_dir, exist_ok=True)
+        # st.write cwd
+        st.write("were here")
+        st.write(os.getcwd())
+        st.write(os.getcwd() + "/fastapi-app/app/recordings") # correct path
+        full_path = os.path.join(os.path.dirname(__file__))
+        st.write(f"Full path: {full_path}")
+        temp_dir = "fastapi-app/app/recordings/"
+        path = os.path.join(full_path, temp_dir)
+        st.write(f"Path: {path}")
+        os.makedirs(path, exist_ok=True)
         
         # Generate unique filename with timestamp
         timestamp = datetime.datetime.now().strftime("%Y%m%d_%H%M%S")
-        filename = os.path.join(temp_dir, f"audio_{timestamp}.wav")
+        filename = os.path.join(path, "../", f"audio_{timestamp}.wav")
+        st.write(f"Filename: {filename}")
         
         # Save the audio file
         with open(filename, "wb") as f:
             f.write(audio['bytes'])
 
+        st.write("were here 2")
+        file_path = os.path.join(os.getcwd(), "fastapi-app", "app", "recordings", f"audio_{timestamp}.wav")
         
+        # Create directory if it doesn't exist
+        os.makedirs(os.path.dirname(file_path), exist_ok=True)
+        
+        # Write file
+        try:
+            with open(file_path, "wb") as f:
+                f.write(audio['bytes'])
+            st.write(f"Successfully wrote to: {file_path}")
+        except Exception as e:
+            st.error(f"Error writing file: {str(e)}")
+            
+        st.write("wrote to recordings")
+
+
+        asyncio.run(get_transcription(1, audio_path=file_path))
         
         # # Play back the recorded audio
         # st.audio(audio['bytes'])
@@ -140,3 +190,6 @@ with col:
         st.audio(st.session_state.audio_data)
 
 st.markdown('</div>', unsafe_allow_html=True)
+
+
+
